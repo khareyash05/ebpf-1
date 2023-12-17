@@ -29,13 +29,7 @@ func main() {
 		log.Fatalf("lookup network iface %q: %s", ifaceName, err)
 	}
 
-	// Load pre-compiled programs into the kernel.
 	objs := bpfObjects{}
-	if err := loadBpfObjects(&objs, nil); err != nil {
-		log.Fatalf("loading objects: %s", err)
-	}
-	defer objs.Close()
-
 	port, err := strconv.Atoi(os.Args[2])
 	if err != nil {
 		log.Fatalf("error here: %s", err)
@@ -45,6 +39,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("error here: %s", err)
 	}
+
+	// Load pre-compiled programs into the kernel.
+	if err := loadBpfObjects(&objs, nil); err != nil {
+		log.Fatalf("loading objects: %s", err)
+	}
+	defer objs.Close()
 
 	// Attach the program.
 	l, err := link.AttachXDP(link.XDPOptions{
