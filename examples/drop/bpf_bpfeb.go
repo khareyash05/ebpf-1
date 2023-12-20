@@ -60,7 +60,6 @@ type bpfProgramSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpfMapSpecs struct {
-	PortMap *ebpf.MapSpec `ebpf:"port_map"`
 }
 
 // bpfObjects contains all objects after they have been loaded into the kernel.
@@ -82,13 +81,10 @@ func (o *bpfObjects) Close() error {
 //
 // It can be passed to loadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpfMaps struct {
-	PortMap *ebpf.Map `ebpf:"port_map"`
 }
 
 func (m *bpfMaps) Close() error {
-	return _BpfClose(
-		m.PortMap,
-	)
+	return _BpfClose()
 }
 
 // bpfPrograms contains all programs after they have been loaded into the kernel.

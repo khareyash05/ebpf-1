@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 )
 
@@ -34,6 +33,12 @@ func main() {
 	}
 
 	objs := bpfObjects{}
+	// Load pre-compiled programs into the kernel.
+	if err := loadBpfObjects(&objs, nil); err != nil {
+		log.Fatalf("loading objects: %s", err)
+	}
+	defer objs.Close()
+
 	process := os.Args[2]
 
 	port, err := strconv.Atoi(os.Args[3])
@@ -41,23 +46,30 @@ func main() {
 		log.Fatalf("error here: %s", err)
 	}
 
-	// add process name to ebpf map
-	err = addPortToMap(objs.ProcessNames, process)
+	bpfProg, err := loadBpf()
 	if err != nil {
 		log.Fatalf("error here: %s", err)
 	}
 
-	// add port name to ebpf map
-	err = addPortToMap(objs.PortNames, port)
+	err = bpfProg.RewriteConstants(map[string]interface{}{
+		"process": process,
+		"port":    port,
+	})
 	if err != nil {
 		log.Fatalf("error here: %s", err)
 	}
 
-	// Load pre-compiled programs into the kernel.
-	if err := loadBpfObjects(&objs, nil); err != nil {
-		log.Fatalf("loading objects: %s", err)
-	}
-	defer objs.Close()
+	// // add process name to ebpf map
+	// err = addPortToMap(objs.ProcessNames, process)
+	// if err != nil {
+	// 	log.Fatalf("error here: %s", err)
+	// }
+
+	// // add port name to ebpf map
+	// err = addPortToMap(objs.PortNames, port)
+	// if err != nil {
+	// 	log.Fatalf("error here: %s", err)
+	// }
 
 	// Attach the program.
 	l, err := link.AttachXDP(link.XDPOptions{
@@ -78,10 +90,10 @@ func main() {
 	log.Println("Waiting for events..")
 }
 
-func addPortToMap(m *ebpf.Map, port interface{}) error {
-	err := m.Put(1, port)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func addPortToMap(m *ebpf.Map, port interface{}) error {
+// 	err := m.Put(1, port)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }

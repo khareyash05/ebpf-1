@@ -6,19 +6,19 @@
 
 char __license[] SEC("license") = "Dual MIT/GPL";
 
-struct bpf_map_def SEC("maps") process_names = {
-	.type        = BPF_MAP_TYPE_HASH,
-	.key_size    = sizeof(u32),
-	.value_size  = sizeof(char[TASK_COMM_LEN]),
-	.max_entries = 2,
-};
+// struct bpf_map_def SEC("maps") process_names = {
+// 	.type        = BPF_MAP_TYPE_HASH,
+// 	.key_size    = sizeof(u32),
+// 	.value_size  = sizeof(char[TASK_COMM_LEN]),
+// 	.max_entries = 2,
+// };
 
-struct bpf_map_def SEC("maps") port_names = {
-	.type        = BPF_MAP_TYPE_HASH,
-	.key_size    = sizeof(u32),
-	.value_size  = sizeof(u32),
-	.max_entries = 2,
-};
+// struct bpf_map_def SEC("maps") port_names = {
+// 	.type        = BPF_MAP_TYPE_HASH,
+// 	.key_size    = sizeof(u32),
+// 	.value_size  = sizeof(u32),
+// 	.max_entries = 2,
+// };
 
 struct tcphdr {
 	__u16	source;
@@ -27,19 +27,23 @@ struct tcphdr {
 	__u32	ack_seq;
 };// seems not to be defined
 
+static volatile char* process;
+static volatile int port;
+
 
 SEC("xdp")
 int allow_specific_port(struct xdp_md *ctx) {
 
-    char comm[TASK_COMM_LEN]; // get name of process currently running
+    char *comm; // get name of process currently running
     bpf_get_current_comm(&comm, sizeof(comm));
 
-    char *process_name = bpf_map_lookup_elem(&process_names, 1); // look into the map for process name passed by the user
-    if (bpf_strcmp(*process_name,comm)==0) {
+    // char *process_name = bpf_map_lookup_elem(&process_names, 1); // look into the map for process name passed by the user
+    // if(process_name == NULL) return XDP_ABORTED;
+    if (__bpf_memcmp_builtin(process,*comm,sizeof(process))==0) { // https://github.com/cilium/cilium/blob/main/bpf/include/bpf/builtins.h#L261
         // Process name not same, drop the packet
         return XDP_DROP;
     }
-    int port = bpf_map_lookup_elem(&port_names, 1); // get port number mentioned by user
+    // int port = bpf_map_lookup_elem(&port_names, 1); // get port number mentioned by user
 
     void *data_end = (void*)(long)ctx->data_end;
     void*data = (void*)(long)ctx->data;

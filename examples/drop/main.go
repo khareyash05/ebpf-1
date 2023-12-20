@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 )
 
@@ -30,21 +29,32 @@ func main() {
 	}
 
 	objs := bpfObjects{}
-	port, err := strconv.Atoi(os.Args[2])
-	if err != nil {
-		log.Fatalf("error here: %s", err)
-	}
-
-	err = addPortToMap(objs.PortMap, port)
-	if err != nil {
-		log.Fatalf("error here: %s", err)
-	}
-
 	// Load pre-compiled programs into the kernel.
 	if err := loadBpfObjects(&objs, nil); err != nil {
 		log.Fatalf("loading objects: %s", err)
 	}
 	defer objs.Close()
+
+	port, err := strconv.Atoi(os.Args[2])
+	if err != nil {
+		log.Fatalf("error here: %s", err)
+	}
+
+	// err = objs.PortMap.Put(1, port)
+	// if err != nil {
+	// 	log.Fatalf("error here: %s", err)
+	// }
+	bpfProg, err := loadBpf()
+	if err != nil {
+		log.Fatalf("error here: %s", err)
+	}
+
+	err = bpfProg.RewriteConstants(map[string]interface{}{
+		"port": port,
+	})
+	if err != nil {
+		log.Fatalf("error here: %s", err)
+	}
 
 	// Attach the program.
 	l, err := link.AttachXDP(link.XDPOptions{
@@ -63,12 +73,4 @@ func main() {
 	defer ticker.Stop()
 
 	log.Println("Waiting for events..")
-}
-
-func addPortToMap(m *ebpf.Map, port int) error {
-	err := m.Put(1, port)
-	if err != nil {
-		return err
-	}
-	return nil
 }
