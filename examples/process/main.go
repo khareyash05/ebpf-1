@@ -34,10 +34,7 @@ func main() {
 	}
 
 	objs := bpfObjects{}
-	process, err := strconv.Atoi(os.Args[2])
-	if err != nil {
-		log.Fatalf("error here: %s", err)
-	}
+	process := os.Args[2]
 
 	port, err := strconv.Atoi(os.Args[3])
 	if err != nil {
@@ -81,7 +78,7 @@ func main() {
 	log.Println("Waiting for events..")
 }
 
-func addPortToMap(m *ebpf.Map, port int) error {
+func addPortToMap(m *ebpf.Map, port interface{}) error {
 	err := m.Put(1, port)
 	if err != nil {
 		return err
